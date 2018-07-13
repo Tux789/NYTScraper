@@ -1,0 +1,61 @@
+<div class="container">
+    <div class="jumbotron">
+        <h1 id="title">J's Burger Joint</h1>
+        <label for="orderName"><h4>Whadaya Want?: </h4></label>
+        <input name="orderName" id="orderName" placeholder="Type Order Here">
+        <button id="submitOrder" class="btn btn-primary"><span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span> Place Order</button>       
+    </div>
+<div class="col-md-6">
+<div class="panel panel-default">
+<div class="panel-heading">
+    <h4>Burgers to Eat</h4>
+    </div>
+<div id="burgersToEat" class="panel-body">
+{{#each burgers}}
+{{#unless devoured}}
+<div class="burger-display">
+<h3>{{burger_name}}</h3> <button data-id={{id}} class="btn btn-primary devour-button"> <span class="glyphicon glyphicon-cutlery" aria-hidden="true"></span> Devour it!</button>
+</div>
+{{/unless}}
+{{/each}}
+</div>
+</div>
+</div>
+<div class="col-md-6">
+<div class="panel panel-default">
+    <div class="panel-heading">
+    <h4>Burgers Eaten</h4>
+    </div>
+<div id="burgersEaten" class="panel-body">
+{{#each burgers}}
+{{#if devoured}}
+<div class="burger-display burger-devoured">
+<h3>{{burger_name}}</h3>
+</div>
+{{/if}}
+{{/each}}
+</div>
+</div>
+</div>
+
+<script>
+    $("#submitOrder").on("click",function(){
+         var newBurger={
+                name: $("#orderName").val().trim(),
+            };
+        $.ajax("/api/burgers",{
+            method: "post",
+            data: newBurger,
+        }).then(function(){
+            location.reload();        
+        });
+    });
+
+    $(".devour-button").on("click",function(){
+        $.ajax(`/api/burgers/${$(this).attr("data-id")}`,{
+            method: "PUT",
+        }).then(function(){
+            location.reload();
+        })
+    });
+</script>
