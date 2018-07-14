@@ -1,13 +1,9 @@
-<div class="container">
-    <div class="jumbotron">
-        <h1>NYTimes Article Scraper</h1>
-        {{#if user}}
-        <p id="user" username={{user.username}}>Hello {{user.username}}</p>
-        <a href="/logout">Logout</a>
-        {{else}}
-        <a href="/login">Login</a>
-        {{/if}}
-    </div>
+<style>
+    .deleteButton {
+        margin-left: 20px;
+        color: red;
+    }
+</style>
 
 
 
@@ -16,117 +12,137 @@
 
 
 
-    <div class="col-md-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <h4>Articles</h4>
+
+
+
+<div class="col-md-6">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4>Articles
+                <button id="scrapeButton" type="button" class="btn btn-default" aria-label="Scrape">
+                    <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                </button>
+            </h4>
+
+        </div>
+        <div id="articles" class="panel-body">
+            {{#each articles}}
+            <div class="article">
+                <h3 data-id={{_id}}>{{title}}</h3>
+                <p>{{summary}}</p>
+                <a href={{link}}>Read this article</a>
             </div>
-            <div id="articles" class="panel-body">
-                {{#each articles}}
-                <div class="article">
-                    <h3 data-id={{_id}}>{{title}}</h3>
-                    <p>{{summary}}</p>
-                    <a href={{link}}>Read this article</a>
+            {{/each}}
+        </div>
+    </div>
+</div>
+<div class="col-md-6">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4>Comments</h4>
+
+        </div>
+        <div id="comments" class="panel-body">
+            {{#if user}} {{else}}
+            <form action="/login" method="post">
+                <div>
+                    <label>Username:</label>
+                    <input type="text" name="username" />
+                    <br/>
                 </div>
-                {{/each}}
-            </div>
+                <div>
+                    <label>Password:</label>
+                    <input type="password" name="password" />
+                </div>
+                <div>
+                    <input type="submit" value="Submit" />
+                </div>
+            </form>
+            <p>If you do not have an account Enter in your desired username and password</br>
+                Your account will be created if that username is available</p>
+            {{/if}}
+
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <h4>Notes</h4>
-
-            </div>
-            <div id="comments" class="panel-body">
-                {{#if user}}
-                {{else}}
-                <form action="/login" method="post">
-                    <div>
-                        <label>Username:</label>
-                        <input type="text" name="username" />
-                        <br/>
-                    </div>
-                    <div>
-                        <label>Password:</label>
-                        <input type="password" name="password" />
-                    </div>
-                    <div>
-                        <input type="submit" value="Submit"  />
-                    </div>
-                </form>
-                {{/if}}
-
-            </div>
-        </div>
-    </div>
+</div>
 
 
 
-    <script>
+<script>
 
-        function getComments() {
-            $.get(`/articles/${$(this).attr("data-id")}`)
-                .then(function (dbComments) {
-                    $("#comments").empty();
-                    dbComments.comments.map(function (comment) {
-                        $("#comments")
-                            .append(
-                            $("<div>")
-                                .addClass("comment")
-                                .append(
-                                $("<h4>").text(comment.author),
-                                $("<p>").text(comment.body)
-                                )
-                            );
-                    });
-                   
+    function getComments() {
+        $.get(`/articles/${$(this).attr("data-id")}`)
+            .then(function (dbComments) {
+                $("#comments").empty();
+                dbComments.comments.map(function (comment) {
                     $("#comments")
                         .append(
-                        $("<textarea id='commentBody'></textarea>"),
-                        $("<br>"),
-                        $(`<button id='addComment' data-id=${dbComments._id}>Add Comment</button>`)
+                        $("<div>")
+                            .addClass("comment")
+                            .append(
+                            $("<h4>").text(comment.author)
+                                .append(
+                                //weird ternary so that a delete option appears if author is current user
+                                (comment.author === $("#user").attr("username") ? $("<span>").addClass("deleteButton").attr("articleId", dbComments._id).attr("commentId", comment._id).text("delete") : $("<span>"))
+                                ),
+                            $("<p>").text(comment.body),
+                        )
                         );
-
                 });
-        }
-        function saveComment() {
-            //$.ajax(`/articles/${$(this).attr("data-id")}`,
-            $.ajax("/articles/" + $(this).attr("data-id"),
-                {
-                    method: "POST",
-                    data: {
-                       
-                        body: $("#commentBody").val().trim(),
-                    },
-                })
-                .then(function (data) {
-                    console.log(data);
-                    $("#commentBody").val("");
+                if($("#user").attr("username")){
+                $("#comments")
+                    .append(
+                    $("<textarea id='commentBody'></textarea>"),
+                    $("<br>"),
+                    $(`<button id='addComment' data-id=${dbComments._id}>Add Comment</button>`)
+                    );
+                }else{
+                $("#comments")
+                    .append(
+                    $(`<p>Please <a href="/login">Login</a> to post a comment</p>`)
+                    )
+                }
 
-                });
-        }
-
-        $("#articles").on("click", "h3", getComments);
-        $("#comments").on("click", "#addComment", saveComment);
-
-        $("#submitOrder").on("click", function () {
-            var newBurger = {
-                name: $("#orderName").val().trim(),
-            };
-            $.ajax("/api/burgers", {
-                method: "post",
-                data: newBurger,
-            }).then(function () {
-                location.reload();
             });
-        });
-
-        $(".devour-button").on("click", function () {
-            $.ajax(`/api/burgers/${$(this).attr("data-id")}`, {
-                method: "PUT",
-            }).then(function () {
+    }
+    function scrapeArticles() {
+        $.ajax("/scrape", {
+            method: "GET"
+        })
+            .then((results) => {
                 location.reload();
             })
-        });
-    </script>
+    }
+    function removeComment() {
+        $.ajax(`/articles/${$(this).attr("articleId")}/comments/${$(this).attr("commentId")}`,
+            {
+                method: "delete",
+            })
+            .then(function (data) {
+                console.log(data);
+                location.reload();
+            })
+    }
+    function saveComment() {
+        //$.ajax(`/articles/${$(this).attr("data-id")}`,
+        $.ajax("/articles/" + $(this).attr("data-id"),
+            {
+                method: "POST",
+                data: {
+
+                    body: $("#commentBody").val().trim(),
+                },
+            })
+            .then(function (data) {
+                console.log(data);
+                $("#commentBody").val("");
+                location.reload();
+            });
+    }
+
+
+    $("#articles").on("click", "h3", getComments);
+    $("#comments").on("click", "#addComment", saveComment);
+    $("#comments").on("click", ".deleteButton", removeComment);
+    $("#scrapeButton").on("click", scrapeArticles);
+</script>

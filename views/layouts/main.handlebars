@@ -16,6 +16,16 @@
 </head>
 
 <body>
+	<div class="container">
+    <div class="jumbotron">
+        <h1>NYTimes Article Scraper</h1>
+        {{#if user}}
+        <p id="user" username={{user.username}}>Hello {{user.username}}</p>
+        <a href="/logout">Logout</a>
+        {{else}}
+        <a href="/login">Login</a>
+        {{/if}}
+    </div>
 	{{{ body }}}
 </body>
 

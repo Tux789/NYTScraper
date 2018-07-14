@@ -24,10 +24,10 @@ router.get("/", function (req, res) {
         });
 
 });
-router.get("/login", function(req,res){
+router.get("/login", function (req, res) {
     res.render("login");
 });
-router.get("/logout", function(req,res){
+router.get("/logout", function (req, res) {
     req.logout();
     res.redirect('/login');
 });
@@ -95,7 +95,7 @@ router.get("/articles", function (req, res) {
 });
 
 // Route for grabbing a specific Article by id, populate it with it's note
-router.get("/articles/:id", 
+router.get("/articles/:id",
     function (req, res) {
         // Using the id passed in the id parameter, prepare a query that finds the matching one in our db...
         db.Article.findOne({ _id: req.params.id })
@@ -114,12 +114,12 @@ router.get("/articles/:id",
 // Route for saving/updating an Article's associated Note
 router.post("/articles/:id", require('connect-ensure-login').ensureLoggedIn(), function (req, res) {
     // Create a new note and pass the req.body to the entry
-    db.Comment.create({author: req.user.username, body: req.body.body})
+    db.Comment.create({ author: req.user.username, body: req.body.body })
         .then(function (dbComment) {
             // If a Note was created successfully, find one Article with an `_id` equal to `req.params.id`. Update the Article to be associated with the new Note
             // { new: true } tells the query that we want it to return the updated User -- it returns the original by default
             // Since our mongoose query returns a promise, we can chain another `.then` which receives the result of the query
-            return db.Article.findOneAndUpdate({ _id: req.params.id }, {$push: { comments: dbComment._id } }, { new: true, upsert: true });
+            return db.Article.findOneAndUpdate({ _id: req.params.id }, { $push: { comments: dbComment._id } }, { new: true, upsert: true });
         })
         .then(function (dbArticle) {
             // If we were able to successfully update an Article, send it back to the client
@@ -130,5 +130,27 @@ router.post("/articles/:id", require('connect-ensure-login').ensureLoggedIn(), f
             res.json(err);
         });
 });
+router.delete("/articles/:articleId/comments/:commentId", require('connect-ensure-login').ensureLoggedIn(), function (req, res) {
+    db.Comment.findById(req.params.commentId)
+        .then((dbComment) => {
+            if (req.user.username === dbComment.author) {
+                db.Article.findOneAndUpdate({ _id: req.params.articleId }, { $pull: { comments: [req.params.commentId] } })
+                    .then((result) => {
+                        db.Comment.deleteOne({ _id: req.params.commentId })
+                            .then((result) => {
+                                res.json(result);
+                            });
+                        //end Comment delete
+                    })
+                //end Article update
+            } else {
+                res.status("401").send();
+            }
+        })
+        .catch((err) => {
+            console.log(err);
+            res.status("500").send();
+        });
+})
 
 module.exports = router;
